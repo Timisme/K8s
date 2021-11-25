@@ -1,0 +1,10 @@
+# 設定 MongoDB Endpoint (ConfigMap)
+
+apiVersion: v1 
+kind: ConfigMap 
+metadata:
+  name: mongo-config # configMap 自訂名稱
+data: # actual contents : key-value pairs 
+  mongo-url: mongo-service 
+  
+

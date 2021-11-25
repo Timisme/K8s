@@ -1,0 +1,60 @@
+# 建立 webapp 的 DEPLOYMENT 和 SERVICE 
+# 常會把 DEPLOYMENT 和 SERVICE 在同個 FILE 定義
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels: # Identifier, key-value pairs that are attached to K8s resourses
+    app: webapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels: # Pods that match the defined labels belong to the Deployment 
+      app: webapp
+  template:  # Configuration for Pod Within a Deployment 
+    metadata:
+      labels:
+        app: webapp #( app : conventions)
+    spec:
+      containers: # Create Pods with "webapp:5.0 image"
+      - name: webapp
+        image: nanajanashia/k8s-demo-app:v1.0 # simple node.js web app
+        ports:
+        - containerPort: 3000 # the port where the container listens (defined by the document, not arbitrary).
+        env: 
+        - name: USER_NAME # arbitrary 
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: USER_PWD # arbitrary 
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+        - name: DB_URL # the app needs db endpoint
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config # yaml file name
+              key: mongo-url  # key in the configmap
+
+--- # multiple yaml config in single file 
+
+# we need "external service": type, nodeport 額外設定給外部連接
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-service # ConfigMap 會打這個 service
+spec:
+  type: nodePort # Default: ClusterIP
+  selector: # Connect service to pods 
+    app: webapp # should match the label of the pods which belong to the service 
+  ports:
+    - protocol: TCP
+      port: 3000 # arbitrary - Service port 
+      targetPort: 3000 # the port of the pods that belong to the service (should be always the same as the container port )
+      NodePort: 30100 # default: 30000-32767
+      
+

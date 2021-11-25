@@ -1,0 +1,50 @@
+# 建立 MONGO DB 的 DEPLOYMENT 和 SERVICE 
+# 常會把 DEPLOYMENT 和 SERVICE 在同個 FILE 定義
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  labels: # Identifier, key-value pairs that are attached to K8s resourses
+    app: mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: # Pods that match the defined labels belong to the Deployment 
+      app: mongo
+  template:  # Configuration for Pod Within a Deployment 
+    metadata:
+      labels:
+        app: mongo #(conventions)
+    spec:
+      containers: # Create Pods with "mongo:5.0 image"
+      - name: mongodb
+        image: mongo
+        ports:
+        - containerPort: 27017 # the port where the container listens (defined by the document, not arbitrary).
+        env: # env variable setup 
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+              secretKeyRef:
+                name: mongo-secret # K8s finds the key with this name 
+                key: mongo-user # the value of mongo-user will be substituting the env variable
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+              secretKeyRef:
+                name: mongo-secret # K8s finds the key with this name 
+                key: mongo-password
+--- # multiple yaml config in single file 
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service # ConfigMap 會打這個 service
+spec:
+  selector: # Connect service to pods 
+    app: mongo # should match the label of the pods which belong to the service 
+  ports:
+    - protocol: TCP
+      port: 80 # arbitrary - Service port 
+      targetPort: 27017 # the port of the pods that belong to the service (should be always the same as the container port )
+      # tells which port the service should forward the request to the pods 
+
